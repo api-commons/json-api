@@ -1,7 +1,7 @@
 ---
 "$schema": https://json-schema.org/draft/2020-12/schema
-title: JSON:API Schema
-description: This is a schema for responses in the JSON:API format. For more, see http://jsonapi.org.
+title: JSON:API JSON Schema
+description: This is a JSON Schema for responses in the JSON:API format. For more, see http://jsonapi.org.
 type: object
 required:
 - data

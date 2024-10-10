@@ -1,0 +1,248 @@
+
+openapi: 3.0.0
+info:
+  title: JSON:API OpenAPI
+  description: A base OpenAPI for the JSON:API to be used as seed for new APIs.
+  version: 1.0.0
+tags:
+  - name: Resources
+    description: An array of JSON:API resources.
+
+paths:
+  /resources:
+    get:
+      summary: Get Resources
+      description: Returns a list of JSON:API resources.
+      operationId: getResources
+      tags:
+        - Resources
+      responses:
+        '200':
+          description: A array of resources.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: '#/components/schemas/Resources'
+              examples:
+                sparse-fieldsets:
+                  $ref: '#/components/examples/ConfirmationSuccess'
+
+components:
+  examples:
+
+    ConfirmationSuccess:
+      summary: Sparse Fields
+      description: Uses the default Sparse Fields example at - https://jsonapi.org/examples/#sparse-fieldsets.
+      value:
+        data:
+        - type: articles
+          id: '1'
+          attributes:
+            title: JSON:API paints my bikeshed!
+            body: The shortest article. Ever.
+            created: '2015-05-22T14:56:29.000Z'
+            updated: '2015-05-22T14:56:28.000Z'
+          relationships:
+            author:
+              data:
+                id: '42'
+                type: people
+        included:
+        - type: people
+          id: '42'
+          attributes:
+            name: John
+            age: 80
+            gender: male   
+
+    PaginationSuccess:
+      summary: Pagination
+      description: Uses the Pagination example at - https://jsonapi.org/examples/#pagination.
+      value:
+        meta:
+          totalPages: 13
+        data:
+        - type: articles
+          id: '3'
+          attributes:
+            title: JSON:API paints my bikeshed!
+            body: The shortest article. Ever.
+            created: '2015-05-22T14:56:29.000Z'
+            updated: '2015-05-22T14:56:28.000Z'
+        links:
+          self: http://example.com/articles?page[number]=3&page[size]=1
+          first: http://example.com/articles?page[number]=1&page[size]=1
+          prev: http://example.com/articles?page[number]=2&page[size]=1
+          next: http://example.com/articles?page[number]=4&page[size]=1
+          last: http://example.com/articles?page[number]=13&page[size]=1
+                  
+  schemas:
+
+    Resources:
+      type: array
+      items:
+        $ref: '#/components/schemas/Resource'
+        
+    Resource:
+      description: 'Resource objects appear in a JSON:API document to represent resource.'
+      type: object
+      required:
+      - type
+      - id
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        attributes:
+          "$ref": "#/components/schemas/Attributes"
+        relationships:
+          "$ref": "#/components/schemas/Relationships"
+        links:
+          "$ref": "#/components/schemas/Links"
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/Data"  
+        pagination:
+          "$ref": "#/components/schemas/Pagination"             
+      additionalProperties: false
+      
+    Meta:
+      description: Non-standard meta-information that can not be represented as an attribute
+        or relationship.
+      type: object
+      additionalProperties: true
+    Data:
+      description: The document's "primary data" is a representation of the resource
+        or collection of resources targeted by a request.
+      oneOf:
+      - "$ref": "#/components/schemas/Resource"
+      - description: An array of resource objects, an array of resource identifier objects,
+          or an empty array ([]), for requests that target resource collections.
+        type: array
+        items:
+          "$ref": "#/components/schemas/Resource"
+        uniqueItems: true
+      - description: null if the request is one that might correspond to a single resource,
+          but doesn't currently.
+        type: 'null'
+    RelationshipLinks:
+      description: A resource object **MAY** contain references to other resource objects
+        ("relationships"). Relationships may be to-one or to-many. Relationships can
+        be specified by including a member in a resource's links object.
+      type: object
+      properties:
+        self:
+          description: A `self` member, whose value is a URL for the relationship itself
+            (a "relationship URL"). This URL allows the client to directly manipulate
+            the relationship. For example, it would allow a client to remove an `author`
+            from an `article` without deleting the people resource itself.
+          "$ref": "#/components/schemas/Link"
+        related:
+          "$ref": "#/components/schemas/Link"
+      additionalProperties: true
+    Links:
+      type: object
+      additionalProperties:
+        "$ref": "#/components/schemas/Link"
+    Link:
+      description: 'A link **MUST** be represented as either: a string containing the
+        link''s URL or a link object.'
+      oneOf:
+      - description: A string containing the link's URL.
+        type: string
+        format: uri-reference
+      - description: A string containing the link's URL.
+        type: string
+        format: uri-reference
+    Attributes:
+      description: Members of the attributes object ("attributes") represent information
+        about the resource object in which it's defined.
+      type: object
+      patternProperties:
+        "^(?!relationships$|links$|id$|type$)\\w[-\\w_]*$":
+          description: Attributes may contain any valid JSON value.
+      additionalProperties: false
+    Relationships:
+      description: Members of the relationships object ("relationships") represent references
+        from the resource object in which it's defined to other resource objects.
+      type: object
+      patternProperties:
+        "^(?!id$|type$)\\w[-\\w_]*$":
+          properties:
+            links:
+              "$ref": "#/components/schemas/RelationshipLinks"
+            data:
+              description: Member, whose value represents "resource linkage".
+              oneOf:
+              - "$ref": "#/components/schemas/RelationshipToOne"
+              - "$ref": "#/components/schemas/RelationshipToMany"
+            meta:
+              "$ref": "#/components/schemas/Meta"
+          anyOf:
+          - required:
+            - data
+          - required:
+            - meta
+          - required:
+            - links
+          additionalProperties: false
+      additionalProperties: false
+    RelationshipToOne:
+      description: References to other resource objects in a to-one ("relationship").
+        Relationships can be specified by including a member in a resource's links object.
+      anyOf:
+      - "$ref": "#/components/schemas/Empty"
+      - "$ref": "#/components/schemas/Linkage"
+    RelationshipToMany:
+      description: An array of objects each containing "type" and "id" members for to-many
+        relationships.
+      type: array
+      items:
+        "$ref": "#/components/schemas/Linkage"
+      uniqueItems: true
+    Empty:
+      description: Describes an empty to-one relationship.
+      type: 'null'
+    Linkage:
+      description: The "type" and "id" to non-empty members.
+      type: object
+      required:
+      - type
+      - id
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        meta:
+          "$ref": "#/components/schemas/Meta"
+      additionalProperties: false
+    Pagination:
+      type: object
+      properties:
+        first:
+          description: The first page of data
+          oneOf:
+          - type: string
+            format: uri-reference
+          - type: 'null'
+        last:
+          description: The last page of data
+          oneOf:
+          - type: string
+            format: uri-reference
+          - type: 'null'
+        prev:
+          description: The previous page of data
+          oneOf:
+          - type: string
+            format: uri-reference
+          - type: 'null'
+        next:
+          description: The next page of data
+          oneOf:
+          - type: string
+            format: uri-reference
+          - type: 'null'
