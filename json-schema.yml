@@ -1,0 +1,185 @@
+---
+"$schema": https://json-schema.org/draft/2020-12/schema
+title: JSON:API Schema
+description: This is a schema for responses in the JSON:API format. For more, see http://jsonapi.org.
+type: object
+required:
+- data
+properties:
+  data:
+    "$ref": "#/$defs/Data"
+  included:
+    description: To reduce the number of HTTP requests, servers **MAY** allow
+      responses that include related resources along with the requested primary
+      resources. Such responses are called "compound documents".
+    type: array
+    items:
+      "$ref": "#/$defs/Resource"
+    uniqueItems: true
+  meta:
+    "$ref": "#/$defs/Meta"
+  links:
+    description: Link members related to the primary data.
+    allOf:
+    - "$ref": "#/$defs/Links"
+    - "$ref": "#/$defs/Pagination"
+additionalProperties: false
+"$defs":
+  Meta:
+    description: Non-standard meta-information that can not be represented as an attribute
+      or relationship.
+    type: object
+    additionalProperties: true
+  Data:
+    description: The document's "primary data" is a representation of the resource
+      or collection of resources targeted by a request.
+    oneOf:
+    - "$ref": "#/$defs/Resource"
+    - description: An array of resource objects, an array of resource identifier objects,
+        or an empty array ([]), for requests that target resource collections.
+      type: array
+      items:
+        "$ref": "#/$defs/Resource"
+      uniqueItems: true
+    - description: null if the request is one that might correspond to a single resource,
+        but doesn't currently.
+      type: 'null'
+  Resource:
+    description: '"Resource objects" appear in a JSON:API document to represent resources.'
+    type: object
+    required:
+    - type
+    - id
+    properties:
+      type:
+        type: string
+      id:
+        type: string
+      attributes:
+        "$ref": "#/$defs/Attributes"
+      relationships:
+        "$ref": "#/$defs/Relationships"
+      links:
+        "$ref": "#/$defs/Links"
+      meta:
+        "$ref": "#/$defs/Meta"
+    additionalProperties: false
+  RelationshipLinks:
+    description: A resource object **MAY** contain references to other resource objects
+      ("relationships"). Relationships may be to-one or to-many. Relationships can
+      be specified by including a member in a resource's links object.
+    type: object
+    properties:
+      self:
+        description: A `self` member, whose value is a URL for the relationship itself
+          (a "relationship URL"). This URL allows the client to directly manipulate
+          the relationship. For example, it would allow a client to remove an `author`
+          from an `article` without deleting the people resource itself.
+        "$ref": "#/$defs/Link"
+      related:
+        "$ref": "#/$defs/Link"
+    additionalProperties: true
+  Links:
+    type: object
+    additionalProperties:
+      "$ref": "#/$defs/Link"
+  Link:
+    description: 'A link **MUST** be represented as either: a string containing the
+      link''s URL or a link object.'
+    oneOf:
+    - description: A string containing the link's URL.
+      type: string
+      format: uri-reference
+    - description: A string containing the link's URL.
+      type: string
+      format: uri-reference
+  Attributes:
+    description: Members of the attributes object ("attributes") represent information
+      about the resource object in which it's defined.
+    type: object
+    patternProperties:
+      "^(?!relationships$|links$|id$|type$)\\w[-\\w_]*$":
+        description: Attributes may contain any valid JSON value.
+    additionalProperties: false
+  Relationships:
+    description: Members of the relationships object ("relationships") represent references
+      from the resource object in which it's defined to other resource objects.
+    type: object
+    patternProperties:
+      "^(?!id$|type$)\\w[-\\w_]*$":
+        properties:
+          links:
+            "$ref": "#/$defs/RelationshipLinks"
+          data:
+            description: Member, whose value represents "resource linkage".
+            oneOf:
+            - "$ref": "#/$defs/RelationshipToOne"
+            - "$ref": "#/$defs/RelationshipToMany"
+          meta:
+            "$ref": "#/$defs/Meta"
+        anyOf:
+        - required:
+          - data
+        - required:
+          - meta
+        - required:
+          - links
+        additionalProperties: false
+    additionalProperties: false
+  RelationshipToOne:
+    description: References to other resource objects in a to-one ("relationship").
+      Relationships can be specified by including a member in a resource's links object.
+    anyOf:
+    - "$ref": "#/$defs/Empty"
+    - "$ref": "#/$defs/Linkage"
+  RelationshipToMany:
+    description: An array of objects each containing "type" and "id" members for to-many
+      relationships.
+    type: array
+    items:
+      "$ref": "#/$defs/Linkage"
+    uniqueItems: true
+  Empty:
+    description: Describes an empty to-one relationship.
+    type: 'null'
+  Linkage:
+    description: The "type" and "id" to non-empty members.
+    type: object
+    required:
+    - type
+    - id
+    properties:
+      type:
+        type: string
+      id:
+        type: string
+      meta:
+        "$ref": "#/$defs/Meta"
+    additionalProperties: false
+  Pagination:
+    type: object
+    properties:
+      first:
+        description: The first page of data
+        oneOf:
+        - type: string
+          format: uri-reference
+        - type: 'null'
+      last:
+        description: The last page of data
+        oneOf:
+        - type: string
+          format: uri-reference
+        - type: 'null'
+      prev:
+        description: The previous page of data
+        oneOf:
+        - type: string
+          format: uri-reference
+        - type: 'null'
+      next:
+        description: The next page of data
+        oneOf:
+        - type: string
+          format: uri-reference
+        - type: 'null'
